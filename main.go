@@ -30,23 +30,39 @@ func main() {
 
 	flag := false
 	score := 0
+	var limit time.Duration = 10
+	timer := time.NewTimer(limit * time.Second)
+Loop:
 	for !flag {
 		if len(questions) == 0 {
 			break
 		}
-		var answer string
+
 		randomNumber := randGen(0, len(questions)-1)
 		fmt.Println("Type The Answer Of The Question:", questions[randomNumber].Quest)
-		fmt.Scan(&answer)
 
-		if answer == questions[randomNumber].Answer {
-			score++
-			fmt.Println("Correct! Well done Sekiro")
-			delSliceItem(&questions, randomNumber)
-		} else {
+		answerCh := make(chan string)
+		go func() {
+			var answer string
+			fmt.Scan(&answer)
+			answerCh <- answer
+		}()
+
+		select {
+		case <-timer.C:
 			flag = true
-			break
+			break Loop
+		case answer := <-answerCh:
+			if answer == questions[randomNumber].Answer {
+				score++
+				fmt.Println("Correct! Well done Sekiro")
+				delSliceItem(&questions, randomNumber)
+			} else {
+				flag = true
+				break Loop
+			}
 		}
+
 	}
 
 	if flag {
@@ -54,10 +70,6 @@ func main() {
 	} else {
 		fmt.Println("\nYou Have Answerd All Of Our Questions!!\nYou Are Our CHAMPION!!!\nThanks for playing.\nYour Score Is:", score)
 	}
-
-	// for index, data := range questions {
-	// 	fmt.Println(index, data)
-	// }
 }
 
 func randGen(min int, max int) int {
